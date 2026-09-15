@@ -1,0 +1,1 @@
+(globalThis.TURBOPACK||(globalThis.TURBOPACK=[])).push(["object"==typeof document?document.currentScript:void 0,38192,t=>{t.q("/_next/static/media/send-icon.132.pn0xtd6k1.svg")}]);

@@ -1,0 +1,5 @@
+User-Agent: *
+Allow: /
+
+Host: https://pir-expo.alephtrade.com
+Sitemap: https://pir-expo.alephtrade.com/sitemap.xml

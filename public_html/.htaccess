@@ -1,0 +1,107 @@
+# pir-expo.alephtrade.com — настройки для виртуального хостинга (Apache).
+# Лежит в корне сайта (public_html) рядом с index.html. Сайт — статика:
+# HTML, CSS, JS, картинки; ни PHP, ни базы, ни форм.
+#
+# Все блоки обёрнуты в <IfModule>: нет модуля — блок молча пропускается,
+# сайт продолжает работать, ошибки 500 не будет.
+# Если перед Apache стоит nginx (Beget), картинки и шрифты он отдаёт сам
+# со своим кешем, и заголовки ниже на них не действуют — поэтому имена
+# ассетов несут хеш содержимого и меняются вместе с файлом.
+
+# ---------- 1. Кодировка ----------
+AddDefaultCharset UTF-8
+
+# ---------- 2. Запрет листинга папок ----------
+Options -Indexes
+
+# ---------- 3. Главная страница и 404 ----------
+DirectoryIndex index.html
+ErrorDocument 404 /404.html
+
+# ---------- 4. HTTPS и www ----------
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+
+  # http → https
+  RewriteCond %{HTTPS} !=on
+  RewriteCond %{HTTP:X-Forwarded-Proto} !https
+  RewriteRule ^(.*)$ https://%{HTTP_HOST}/$1 [R=301,L]
+
+  # www → без www
+  RewriteCond %{HTTP_HOST} ^www\.(.+)$ [NC]
+  RewriteRule ^(.*)$ https://%1/$1 [R=301,L]
+</IfModule>
+
+# ---------- 5. Кеш браузера ----------
+<IfModule mod_headers.c>
+  # HTML, служебные файлы Next (.txt), robots, sitemap, manifest — перепроверять
+  # при каждом заходе (по ETag). Файл скачается заново, ТОЛЬКО если изменился.
+  <FilesMatch "\.(html|txt|xml|json|webmanifest)$">
+    Header set Cache-Control "no-cache"
+  </FilesMatch>
+
+  # Картинки, шрифты, меш — кешировать надолго: имена несут хеш содержимого,
+  # новая версия приходит под новым именем.
+  <FilesMatch "\.(jpg|jpeg|png|webp|avif|svg|ico|woff2|woff|bin)$">
+    Header set Cache-Control "public, max-age=31536000, immutable"
+  </FilesMatch>
+
+  # Картинка для превью ссылки лежит по постоянному адресу — без immutable.
+  <FilesMatch "^open-graph\.png$">
+    Header set Cache-Control "public, max-age=86400"
+  </FilesMatch>
+
+  Header unset X-Powered-By
+</IfModule>
+
+# Всё под /_next/static/ — сборка с хешем в имени (CSS, JS, шрифты, картинки).
+<IfModule mod_headers.c>
+  <IfModule mod_setenvif.c>
+    SetEnvIf Request_URI "^/_next/static/" NEXT_STATIC=1
+    Header set Cache-Control "public, max-age=31536000, immutable" env=NEXT_STATIC
+  </IfModule>
+</IfModule>
+
+<IfModule mod_expires.c>
+  ExpiresActive On
+  ExpiresByType text/html "access plus 0 seconds"
+  ExpiresByType text/plain "access plus 0 seconds"
+  ExpiresByType application/xml "access plus 0 seconds"
+  ExpiresByType application/json "access plus 0 seconds"
+  ExpiresByType text/css "access plus 1 year"
+  ExpiresByType application/javascript "access plus 1 year"
+  ExpiresByType image/jpeg "access plus 1 year"
+  ExpiresByType image/png "access plus 1 year"
+  ExpiresByType image/webp "access plus 1 year"
+  ExpiresByType image/avif "access plus 1 year"
+  ExpiresByType image/svg+xml "access plus 1 year"
+  ExpiresByType font/woff2 "access plus 1 year"
+  ExpiresByType application/octet-stream "access plus 1 year"
+</IfModule>
+
+# ---------- 6. Сжатие ----------
+<IfModule mod_deflate.c>
+  AddOutputFilterByType DEFLATE text/html text/css text/plain text/xml
+  AddOutputFilterByType DEFLATE application/javascript application/json
+  AddOutputFilterByType DEFLATE image/svg+xml application/octet-stream
+  # Картинки и woff2 уже сжаты — повторно не трогаем.
+</IfModule>
+
+# ---------- 7. Правильные типы файлов ----------
+<IfModule mod_mime.c>
+  AddType image/avif .avif
+  AddType image/webp .webp
+  AddType font/woff2 .woff2
+  AddType application/manifest+json .webmanifest
+</IfModule>
+
+# ---------- 8. Защита служебных файлов ----------
+<FilesMatch "^(\.env.*|\.git.*|README\.md)$">
+  <IfModule mod_authz_core.c>
+    Require all denied
+  </IfModule>
+  <IfModule !mod_authz_core.c>
+    Order allow,deny
+    Deny from all
+  </IfModule>
+</FilesMatch>
