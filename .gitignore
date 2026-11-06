@@ -1,1 +1,29 @@
+# macOS
 .DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# Editors / IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Env / secrets
+.env
+.env.*
+!.env.example
+
+# Logs / temp
+*.log
+tmp/
+temp/
+.cache/
+
+# Node (если локально собирают исходники рядом)
+node_modules/
+.next/
+out/
+dist/
